@@ -1,0 +1,56 @@
+networks:
+  schooldriva-network:
+    driver: bridge
+
+services:
+
+  schooldriva-db:
+    image: postgres:16
+    container_name: schooldriva-db
+    environment:
+      POSTGRES_DB: schooldriva
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: otaku
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./school_driva_schema.sql:/docker-entrypoint-initdb.d/schema.sql
+    networks:
+      - schooldriva-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U admin -d schooldriva"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  auth-service:
+    build:
+      context: ./auth-service
+      dockerfile: Dockerfile
+    container_name: auth-service
+    ports:
+      - "8081:8081"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://schooldriva-db:5432/schooldriva
+      SPRING_DATASOURCE_USERNAME: admin
+      SPRING_DATASOURCE_PASSWORD: otaku
+      SPRING_JPA_HIBERNATE_DDL_AUTO: validate
+      APP_JWT_SECRET: schooldriva_secret_key_2026_very_long_string_at_least_256_bits_ok
+      APP_JWT_EXPIRATION: 86400000
+      SPRING_MAIL_HOST: smtp.gmail.com
+      SPRING_MAIL_PORT: 587
+      SPRING_MAIL_USERNAME: test@gmail.com
+      SPRING_MAIL_PASSWORD: test
+      APP_UPLOAD_DOSSIER: /app/uploads/documents
+    volumes:
+      - uploads_data:/app/uploads
+    depends_on:
+      schooldriva-db:
+        condition: service_healthy
+    networks:
+      - schooldriva-network
+
+volumes:
+  postgres_data:
+  uploads_data:

@@ -51,6 +51,26 @@ services:
     networks:
       - schooldriva-network
 
+  course-service:
+    build:
+      context: ./course-service
+      dockerfile: Dockerfile
+    container_name: course-service
+    ports:
+      - "8082:8082"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://schooldriva-db:5432/schooldriva
+      SPRING_DATASOURCE_USERNAME: admin
+      SPRING_DATASOURCE_PASSWORD: otaku
+      SPRING_JPA_HIBERNATE_DDL_AUTO: validate
+      APP_JWT_SECRET: schooldriva_secret_key_2026_very_long_string_at_least_256_bits_ok
+      AUTH_SERVICE_URL: http://auth-service:8081
+    depends_on:
+      schooldriva-db:
+        condition: service_healthy
+    networks:
+      - schooldriva-network
+
 volumes:
   postgres_data:
   uploads_data:

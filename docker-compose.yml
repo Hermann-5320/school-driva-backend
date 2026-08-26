@@ -10,7 +10,7 @@ services:
     environment:
       POSTGRES_DB: schooldriva
       POSTGRES_USER: admin
-      POSTGRES_PASSWORD: otaku
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     ports:
       - "5432:5432"
     volumes:
@@ -34,9 +34,9 @@ services:
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://schooldriva-db:5432/schooldriva
       SPRING_DATASOURCE_USERNAME: admin
-      SPRING_DATASOURCE_PASSWORD: otaku
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
       SPRING_JPA_HIBERNATE_DDL_AUTO: validate
-      APP_JWT_SECRET: schooldriva_secret_key_2026_very_long_string_at_least_256_bits_ok
+      APP_JWT_SECRET: ${APP_JWT_SECRET}
       APP_JWT_EXPIRATION: 86400000
       SPRING_MAIL_HOST: smtp.gmail.com
       SPRING_MAIL_PORT: 587
@@ -61,10 +61,33 @@ services:
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://schooldriva-db:5432/schooldriva
       SPRING_DATASOURCE_USERNAME: admin
-      SPRING_DATASOURCE_PASSWORD: otaku
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
       SPRING_JPA_HIBERNATE_DDL_AUTO: validate
-      APP_JWT_SECRET: schooldriva_secret_key_2026_very_long_string_at_least_256_bits_ok
+      APP_JWT_SECRET: ${APP_JWT_SECRET}
       AUTH_SERVICE_URL: http://auth-service:8081
+      SERPAPI_KEY: ${SERPAPI_KEY}
+      PAIEMENT_SERVICE_URL: http://paiement-service:8083
+    depends_on:
+      schooldriva-db:
+        condition: service_healthy
+    networks:
+      - schooldriva-network
+
+  paiement-service:
+    build:
+      context: ./paiement-service
+      dockerfile: Dockerfile
+    container_name: paiement-service
+    ports:
+      - "8083:8083"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://schooldriva-db:5432/schooldriva
+      SPRING_DATASOURCE_USERNAME: admin
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+      SPRING_JPA_HIBERNATE_DDL_AUTO: validate
+      APP_JWT_SECRET: ${APP_JWT_SECRET}
+      AUTH_SERVICE_URL: http://auth-service:8081
+      CTPAY_TOKEN: ${CTPAY_TOKEN}
     depends_on:
       schooldriva-db:
         condition: service_healthy

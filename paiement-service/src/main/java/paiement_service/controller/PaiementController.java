@@ -95,6 +95,12 @@ public class PaiementController {
 
         return ResponseEntity.ok("OK");
     }
+    @GetMapping("/verifier-solde/{chauffeurId}")
+    public ResponseEntity<Map<String, Boolean>> verifierSolde(@PathVariable Long chauffeurId) {
+        PortefeuilleResponseDTO portefeuille = paiementService.getPortefeuille(chauffeurId);
+        boolean suffisant = !portefeuille.getSoldeInsuffisant();
+        return ResponseEntity.ok(Map.of("suffisant", suffisant));
+    }
 
     // ── UTILITAIRE ──────────────────────────────────────────
 
@@ -103,4 +109,5 @@ public class PaiementController {
         Long utilisateurId = jwtService.extraireUserId(jwt);
         return authServiceClient.getChauffeurId(utilisateurId, token);
     }
+
 }

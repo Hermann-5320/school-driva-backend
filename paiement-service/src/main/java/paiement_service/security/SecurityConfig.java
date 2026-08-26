@@ -29,6 +29,7 @@ public class SecurityConfig {
                         .requestMatchers("/actuator/**").permitAll()
                         .requestMatchers("/api/paiements/webhooks/**").permitAll()
                         .requestMatchers("/api/paiements/interne/**").permitAll()
+                        .requestMatchers("/api/paiements/verifier-solde/**").permitAll()
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);

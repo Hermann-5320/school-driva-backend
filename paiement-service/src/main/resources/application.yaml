@@ -1,0 +1,58 @@
+server:
+  port: ${PORT:8083}
+
+spring:
+  application:
+    name: paiement-service
+
+  # Deux façons de configurer la base :
+  #  - SPRING_DATASOURCE_URL / USERNAME / PASSWORD (local, Neon...)
+  #  - DB_HOST / DB_PORT / DB_NAME / DB_USER / DB_PASSWORD (render.yaml, fromDatabase)
+  # Aucune valeur sensible par défaut : sans configuration, le service refuse de démarrer.
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://${DB_HOST}:${DB_PORT:5432}/${DB_NAME}}
+    username: ${SPRING_DATASOURCE_USERNAME:${DB_USER}}
+    password: ${SPRING_DATASOURCE_PASSWORD:${DB_PASSWORD}}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: ${DB_POOL_SIZE:3}
+
+  jpa:
+    hibernate:
+      ddl-auto: ${SPRING_JPA_HIBERNATE_DDL_AUTO:validate}
+    show-sql: ${SHOW_SQL:false}
+    open-in-view: false
+    properties:
+      hibernate:
+        # Chaque service travaille dans son propre schéma PostgreSQL
+        default_schema: paiement
+
+  # Création / mise à niveau du schéma au démarrage (script idempotent)
+  sql:
+    init:
+      mode: ${SQL_INIT_MODE:always}
+      schema-locations: classpath:db/init-paiement.sql
+      continue-on-error: false
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: never
+
+app:
+  jwt:
+    secret: ${APP_JWT_SECRET}
+  internal-api-key: ${APP_INTERNAL_API_KEY}
+  # URL publique du gateway : sert à construire le callback CT Pay
+  public-base-url: ${PUBLIC_BASE_URL:http://localhost:9090}
+  auth-service:
+    url: ${AUTH_SERVICE_URL:http://localhost:8081}
+  ctpay:
+    token: ${CTPAY_TOKEN:}
+    base-url: ${CTPAY_BASE_URL:https://gateway-prod.connecttechnology.io/ct-payment}
+  cors:
+    origins: ${CORS_ORIGINS:http://localhost:5173}

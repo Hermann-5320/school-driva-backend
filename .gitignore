@@ -1,0 +1,8 @@
+.env
+*.log
+target/
+
+.idea/
+*.iml
+uploads/
+*.deb

@@ -1,0 +1,92 @@
+# Lancement local complet : docker compose up --build
+# Prérequis : un fichier .env (voir .env.example)
+networks:
+  schooldriva-network:
+    driver: bridge
+
+x-base-de-donnees: &bdd
+  SPRING_DATASOURCE_URL: jdbc:postgresql://schooldriva-db:5432/schooldriva
+  SPRING_DATASOURCE_USERNAME: admin
+  SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+  APP_JWT_SECRET: ${APP_JWT_SECRET}
+  APP_INTERNAL_API_KEY: ${APP_INTERNAL_API_KEY}
+  CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:5173}
+
+services:
+  schooldriva-db:
+    image: postgres:16
+    container_name: schooldriva-db
+    environment:
+      POSTGRES_DB: schooldriva
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks: [schooldriva-network]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U admin -d schooldriva"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Chaque service crée/met à niveau son propre schéma au démarrage
+  # (src/main/resources/db/init-*.sql)
+  auth-service:
+    build: ./auth-service
+    container_name: auth-service
+    ports: ["8081:8081"]
+    environment:
+      <<: *bdd
+      SPRING_MAIL_USERNAME: ${GMAIL_USERNAME:-}
+      SPRING_MAIL_PASSWORD: ${GMAIL_APP_PASSWORD:-}
+      BREVO_API_KEY: ${BREVO_API_KEY:-}
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:5173}
+    depends_on:
+      schooldriva-db: { condition: service_healthy }
+    networks: [schooldriva-network]
+
+  course-service:
+    build: ./course-service
+    container_name: course-service
+    ports: ["8082:8082"]
+    environment:
+      <<: *bdd
+      AUTH_SERVICE_URL: http://auth-service:8081
+      PAIEMENT_SERVICE_URL: http://paiement-service:8083
+      SERPAPI_KEY: ${SERPAPI_KEY:-}
+      # Itinéraires routiers (facultatif, gratuit sur openrouteservice.org)
+      ORS_API_KEY: ${ORS_API_KEY:-}
+    depends_on:
+      schooldriva-db: { condition: service_healthy }
+    networks: [schooldriva-network]
+
+  paiement-service:
+    build: ./paiement-service
+    container_name: paiement-service
+    ports: ["8083:8083"]
+    environment:
+      <<: *bdd
+      AUTH_SERVICE_URL: http://auth-service:8081
+      CTPAY_TOKEN: ${CTPAY_TOKEN:-}
+      # URL PUBLIQUE du gateway (en local : tunnel ngrok/cloudflared vers :9090)
+      PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:-http://localhost:9090}
+    depends_on:
+      schooldriva-db: { condition: service_healthy }
+    networks: [schooldriva-network]
+
+  gateway-service:
+    build: ./gateway-service
+    container_name: gateway-service
+    ports: ["9090:8080"]
+    environment:
+      AUTH_SERVICE_URL: http://auth-service:8081
+      COURSE_SERVICE_URL: http://course-service:8082
+      PAIEMENT_SERVICE_URL: http://paiement-service:8083
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:5173}
+    depends_on: [auth-service, course-service, paiement-service]
+    networks: [schooldriva-network]
+
+volumes:
+  postgres_data:

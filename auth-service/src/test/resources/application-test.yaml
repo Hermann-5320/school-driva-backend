@@ -1,0 +1,26 @@
+spring:
+  datasource:
+    url: jdbc:h2:mem:authtest;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH;NON_KEYWORDS=ROLE,TYPE,MODE,ACTION,VALUE,USER;INIT=CREATE SCHEMA IF NOT EXISTS auth
+    username: sa
+    password: ""
+    driver-class-name: org.h2.Driver
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    properties:
+      hibernate:
+        default_schema: auth
+  sql:
+    init:
+      mode: never
+
+app:
+  jwt:
+    secret: test_secret_school_driva_au_moins_64_caracteres_pour_hmac_sha_256_ok
+    expiration: 3600000
+  internal-api-key: cle-interne-de-test
+  public-base-url: http://localhost
+  auth-service:
+    url: http://auth.test
+  paiement-service:
+    url: http://paiement.test

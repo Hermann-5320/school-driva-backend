@@ -1,0 +1,77 @@
+server:
+  port: ${PORT:8081}
+
+spring:
+  application:
+    name: auth-service
+
+  # Aucune valeur sensible par défaut : si une variable manque, le service
+  # refuse de démarrer au lieu de tourner avec un secret connu de tous.
+  # Deux façons de configurer la base :
+  #  - SPRING_DATASOURCE_URL / USERNAME / PASSWORD (local, Neon...)
+  #  - DB_HOST / DB_PORT / DB_NAME / DB_USER / DB_PASSWORD (render.yaml, fromDatabase)
+  # Aucune valeur sensible par défaut : sans configuration, le service refuse de démarrer.
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://${DB_HOST}:${DB_PORT:5432}/${DB_NAME}}
+    username: ${SPRING_DATASOURCE_USERNAME:${DB_USER}}
+    password: ${SPRING_DATASOURCE_PASSWORD:${DB_PASSWORD}}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: ${DB_POOL_SIZE:3}
+
+  jpa:
+    hibernate:
+      ddl-auto: ${SPRING_JPA_HIBERNATE_DDL_AUTO:validate}
+    show-sql: ${SHOW_SQL:false}
+    open-in-view: false
+    properties:
+      hibernate:
+        # Chaque service travaille dans son propre schéma PostgreSQL
+        default_schema: auth
+
+  # Création / mise à niveau du schéma au démarrage (script idempotent)
+  sql:
+    init:
+      mode: ${SQL_INIT_MODE:always}
+      schema-locations: classpath:db/init-auth.sql
+      continue-on-error: false
+
+  servlet:
+    multipart:
+      max-file-size: 5MB
+      max-request-size: 6MB
+
+  mail:
+    host: ${SPRING_MAIL_HOST:smtp.gmail.com}
+    port: ${SPRING_MAIL_PORT:587}
+    username: ${SPRING_MAIL_USERNAME:}
+    password: ${SPRING_MAIL_PASSWORD:}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: never
+
+app:
+  jwt:
+    secret: ${APP_JWT_SECRET}
+    expiration: ${APP_JWT_EXPIRATION:43200000}   # 12 h
+  internal-api-key: ${APP_INTERNAL_API_KEY}
+  mail:
+    # Recommandé sur Render (SMTP bloqué en offre gratuite) : clé API Brevo (gratuit)
+    brevo-api-key: ${BREVO_API_KEY:}
+    expediteur: ${MAIL_EXPEDITEUR:no-reply@schooldriva.cm}
+  cors:
+    origins: ${CORS_ORIGINS:http://localhost:5173}
+  # Adresse du frontend, utilisée dans les liens envoyés par email
+  frontend-url: ${FRONTEND_URL:http://localhost:5173}
